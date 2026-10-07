@@ -202,6 +202,9 @@ convention so client-side point-cloud math renders right-handed Z-up directly.
 
 ### Participating media: dust, smoke and fog { #participating-media }
 
+For a ready-made side-by-side camera/lidar scene with live controls, see the
+[lidar participating-media demo](../guides/lidar-participating-media-demo.md).
+
 The lidar is a scene-depth sensor, and none of the things a camera renders as dust, smoke or fog
 write depth. The participating media settings on `UTempoLidar` close that gap without any
 per-effect setup: if it attenuates the camera's view, it attenuates the beam.
