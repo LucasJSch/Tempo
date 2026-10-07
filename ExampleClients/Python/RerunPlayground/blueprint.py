@@ -66,7 +66,73 @@ def _world_view(scene, cfg, active) -> rrb.Spatial3DView:
     return rrb.Spatial3DView(name="World", origin=conv.WORLD, contents=contents)
 
 
+def _media_demo_lidar_views(scene, active):
+    """Sensor-local forward and bird's-eye views of the same lidar entities."""
+    lidar = next(
+        (
+            sensor
+            for sensor in scene.sensors
+            if sensor.is_lidar and "points" in active.get(sensor.key, set())
+        ),
+        None,
+    )
+    if lidar is None:
+        return None
+
+    origin = conv.sensor_entity(lidar.owner, lidar.name)
+    contents = ["+ $origin/**"]
+    forward = rrb.Spatial3DView(
+        name="Lidar — forward",
+        origin=origin,
+        contents=contents,
+        eye_controls=rrb.EyeControls3D(
+            kind=rrb.Eye3DKind.FirstPerson,
+            position=(-1.5, 0.0, 1.0),
+            look_target=(20.0, 0.0, 0.0),
+            eye_up=(0.0, 0.0, 1.0),
+            speed=10.0,
+        ),
+    )
+    overhead = rrb.Spatial3DView(
+        name="Lidar — overhead",
+        origin=origin,
+        contents=contents,
+        eye_controls=rrb.EyeControls3D(
+            kind=rrb.Eye3DKind.Orbital,
+            position=(15.0, 0.0, 35.0),
+            look_target=(15.0, 0.0, 0.0),
+            # Keep lidar-forward (+X) pointing toward the top of the view.
+            eye_up=(1.0, 0.0, 0.0),
+            speed=10.0,
+        ),
+    )
+    return forward, overhead
+
+
 def build_blueprint(scene, cfg, active) -> rrb.Blueprint:
+    if getattr(cfg, "media_demo", False):
+        lidar_views = _media_demo_lidar_views(scene, active)
+        camera_views = _camera_views(scene, active)
+        if lidar_views is not None:
+            forward, overhead = lidar_views
+            lidar_column = rrb.Vertical(
+                forward, overhead, row_shares=[1, 1], name="Lidar reconstructions"
+            )
+            if camera_views:
+                layout = rrb.Horizontal(
+                    rrb.Grid(*camera_views, name="RGB camera"),
+                    lidar_column,
+                    column_shares=[2, 3],
+                )
+            else:
+                layout = lidar_column
+            return rrb.Blueprint(
+                layout,
+                rrb.BlueprintPanel(state="collapsed"),
+                rrb.SelectionPanel(state="collapsed"),
+                rrb.TimePanel(state="collapsed"),
+            )
+
     world_view = _world_view(scene, cfg, active)
 
     cam_views = _camera_views(scene, active)
