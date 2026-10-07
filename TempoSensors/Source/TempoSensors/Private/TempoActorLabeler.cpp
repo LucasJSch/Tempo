@@ -862,17 +862,20 @@ void UTempoActorLabeler::BuildLabelMaps()
 	ActorTagLabels.Reset();
 	SemanticIds.Reset();
 
+	// A project may use RGB/depth/lidar without configuring semantic labels. Treat that as labels
+	// being unavailable, not as an error for every actor that exists or spawns in the world.
+	if (!SemanticLabelTable)
+	{
+		UE_LOG(LogTempoSensors, Warning, TEXT("No semantic label table is set; semantic and instance labeling are disabled"));
+		return;
+	}
+
 	// A table set in the editor never passes through LoadLabelTable's check, so report the same
 	// problems here. Building the maps anyway is deliberate: whatever the table gets right still
 	// labels the world, and each problem below describes an entry that will be missing or wrong.
 	for (const FString& Problem : ValidateSemanticLabelTable(SemanticLabelTable))
 	{
 		UE_LOG(LogTempoSensors, Error, TEXT("Semantic label table: %s"), *Problem);
-	}
-
-	if (!SemanticLabelTable)
-	{
-		return;
 	}
 
 	// Ingest one of the row's tag columns. The validator has already reported every key two rows
@@ -970,7 +973,6 @@ void UTempoActorLabeler::LabelActor(AActor* Actor)
 
 	if (!SemanticLabelTable)
 	{
-		UE_LOG(LogTempoSensors, Error, TEXT("Semantic Label table was not set"));
 		return;
 	}
 
